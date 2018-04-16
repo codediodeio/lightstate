@@ -1,3 +1,5 @@
+![](https://circleci.com/gh/codediodeio/robx.svg?style=shield&circle-token=:circle-token)
+
 # ROBx - ReactiveObject
 
 Status: Experimental

@@ -6,7 +6,8 @@
   "types": "./dist/ReactiveObject.d.ts",
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "test": "jest --watchAll"
+    "test": "jest",
+    "test:watch": "jest --watchAll"
   },
   "keywords": [
     "rxjs",
