@@ -49,7 +49,7 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
 
   /// READS
 
-  get$(path?: Getter) {
+  get$<T>(path?: Getter): Observable<T> {
     let obs = this.asObservable();
     if (typeof path === 'function') {
       obs = obs.pipe(map(val => path(val)), distinctUntilChanged());
@@ -61,7 +61,7 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     return obs;
   }
 
-  get(path?: Getter) {
+  get<T>(path?: Getter): T {
     let val = this.value;
     if (typeof path === 'function') {
       return path(this.value);
@@ -72,19 +72,19 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     return val;
   }
 
-  has(path: string) {
+  has(path: string): boolean {
     return has(this.value, path);
   }
 
   /// MUTATIONS
 
-  set(data: any) {
+  set(data: any): void {
     const action = new Action(this.actName('SET'), data);
 
     this.execute(this.value, data, action, this.opts);
   }
 
-  setAt(path: string, data: any) {
+  setAt(path: string, data: any): void {
     const action = new Action(this.actName(`SET@${path}`), data);
 
     const curr = this.value;
@@ -93,13 +93,13 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     this.execute(this.value, data, action, this.opts);
   }
 
-  update(data: any) {
+  update(data: any): void {
     const action = new Action(this.actName(`UPDATE`), data);
     const next = { ...this.value, ...data };
     this.execute(this.value, next, action, this.opts);
   }
 
-  updateAt(path: string, data: any, opts = {} as any) {
+  updateAt(path: string, data: any, opts = {} as any): void {
     // Format Action
     const name = opts.name || 'UPDATE';
     const action = new Action(this.actName(`${name}@${path}`), data);
@@ -117,7 +117,7 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     this.execute(this.value, next, action, this.opts);
   }
 
-  remove(path: string) {
+  remove(path: string): void {
     const action = new Action(this.actName(`REMOVE@${path}`));
     const val = this.value;
     unset(val, path);
@@ -125,12 +125,12 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     this.execute(this.value, next, action, this.opts);
   }
 
-  reset() {
+  reset(): void {
     const action = new Action(this.actName('RESET'));
     this.execute(this.value, this._default, action, this.opts);
   }
 
-  clear() {
+  clear(): void {
     const action = new Action(this.actName('CLEAR'));
     this.execute(this.value, {}, action, this.opts);
   }
@@ -198,18 +198,18 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
 
   /// QUERIES
 
-  where(path: string, rules: any) {
+  where(path: string, rules: any): object[] {
     const curr = this.get(path);
     return filter(curr, conforms(rules));
   }
 
-  where$(path: string, rules: any) {
+  where$(path: string, rules: any): Observable<object[]> {
     return this.get$(path).pipe(map(curr => filter(curr, conforms(rules))));
   }
 
   /// MIDDLEWARE
 
-  use(middleware: MiddlewareFn) {
+  use(middleware: MiddlewareFn): void {
     this.middleware = middleware;
   }
 

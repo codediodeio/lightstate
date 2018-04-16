@@ -1,6 +1,5 @@
 {
-  "$schema": "./node_modules/ng-packagr/package.schema.json",
-  "name": "rob",
+  "name": "robx",
   "version": "0.0.2",
   "description": "reactive state container",
   "main": "./dist/ReactiveObject.js",

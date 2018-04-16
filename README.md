@@ -1,4 +1,4 @@
-# ROB - ReactiveObject
+# ROBx - ReactiveObject
 
 Status: Experimental
 
@@ -18,7 +18,7 @@ ROB is not opinionated. You can have one global state or multiple smaller states
 ## Let there be State...
 
 ```
-npm i rob -s
+npm i robx -s
 ```
 
 ## ReactiveObject
@@ -28,8 +28,6 @@ ROB provides you with one thing - a `ReactiveObject` class. It's a BehaviorSubje
 ```js
 const state = new ReactiveObject( { username: 'Jeff' } )
 ```
-
-You can use it as a single global store, or use many other them together.
 
 ### Options
 
@@ -139,9 +137,9 @@ state.dispatch('CHANGE_USERNAME', payload, handler )
 
 ## Async Data
 
-Async stuff is what makes state management hard. The library can automatically subscribe to Observables and resolve Promises, then make updates with the resolved values. It also keeps track of all running subscriptions in the state object, so you can manage, cancel, and analyze streaming subscriptions
+Crazy async stuff is why state management is a challenge on the web. The library can automatically subscribe to Observables and resolve Promises, then make updates with the resolved values. It also keeps track of all running subscriptions in the state object, so you can manage, cancel, and analyze streaming subscriptions
 
-### Method 1 - Automagically 
+### Method 1 - Automatic 
 
 ```ts
 const observable = http.get(...);
@@ -183,7 +181,7 @@ Inspired by NgRx Effects, you can listen to actions and react.
 ```ts
 this.state.actions$.ofType('[mystate] MY_ACTION').pipe(
     tap(action => {
-
+        // do stuff
     })
 )
 .subscribe()
@@ -202,13 +200,10 @@ const yourMiddleware = (current, next, action, opts) => {
 }
 ```
 
-You can pass middleware through options. Note: Only one middleware function is allowed per StateContext object. 
+You can pass middleware through options or by calling `use`. Note: Only one middleware function is allowed per StateContext object. 
 
 ```ts
-const opts = { middleware: yourMiddleware }
 const state = new ReactiveObject({ name: 'rob' }, opts)
-
-// Alternatively, apply after instantiation 
 state.use(yourMiddleware)
 ```
 
