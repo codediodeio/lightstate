@@ -1,10 +1,10 @@
-# SOB - StatefulObject
+# ROB - ReactiveObject
 
 Status: Experimental
 
 *Why?* Because I love what an RxJS BehaviorSubject does, but hate the way it does it. 
 
-*What?* SOB provides an immutable state container designed for optimal developer happiness. 
+*What?* ROB provides an immutable state container designed for optimal developer happiness. 
 
 - Simplified data selection and mutation
 - Automatic actions 
@@ -13,20 +13,20 @@ Status: Experimental
 - Redux Dev Tools support out of the box
 - Only dependency is RxJS
 
-SOB is not opinionated. You can have one global state or multiple smaller states. 
+ROB is not opinionated. You can have one global state or multiple smaller states. 
 
 ## Let there be State...
 
 ```
-npm i rx-sob --save
+npm i rob -s
 ```
 
-## StatefulObject
+## ReactiveObject
 
-Sob provides you with one thing - a `StatefulObject` class. It's a BehaviorSubject on steroids.
+ROB provides you with one thing - a `ReactiveObject` class. It's a BehaviorSubject on steroids.
 
 ```js
-const state = new StatefulObject( { username: 'Jeff' } )
+const state = new ReactiveObject( { username: 'Jeff' } )
 ```
 
 You can use it as a single global store, or use many other them together.
@@ -35,21 +35,21 @@ You can use it as a single global store, or use many other them together.
 
 You can can pass options as a second argument. 
 
+- `name` give your container a unique name for action creation (a random name is assigned by default). 
+- `devTools` devtools config or false (enabled by default)
+- `logger` console log state changes (enabled by default)
+- `middleware` a function that can intercept state changes
+- `[key:string]` add your own options, then intercept them with middleware 
+
+
 ```js
 const opts = { 
     name: 'user',
     devTools: false,
-    logger: myCustomLogger
-    middleware: someFunction
+    middleware: myMiddlewareFunction
 }
-const state = new StatefulObject( default, opts )
+const state = new ReactiveObject( default, opts )
 ```
-
-- `name` give your container a unique name for action creation (a random name is assigned by default). 
-- `devTools` devtools config or false (enabled by default)
-- `logger` console log state changes (enabled by default)
-- `middleware` a function that can intercepts state changes
-- `[key:string]` add your own options, then intercept them with middleware 
 
 ### Automatic Actions
 
@@ -62,10 +62,10 @@ The object infers an action based on the following convention (you can override 
 It will look like this in Redux Dev Tools
 
 ```text
-[userState] UPDATE@users.userXYZ
+[userState] UPDATE@profile.displayName
 [userState] CLEAR
-[userState] PROMISE_START@some.data
-[userState] PROMISE_RESOLVE@some.data
+[userState] PROMISE_START@reviews.phoenix
+[userState] PROMISE_RESOLVE@reviews.phoenix
 ```
 
 ## Select 
@@ -206,7 +206,7 @@ You can pass middleware through options. Note: Only one middleware function is a
 
 ```ts
 const opts = { middleware: yourMiddleware }
-const state = new StatefulObject({ name: 'bob' }, opts)
+const state = new ReactiveObject({ name: 'rob' }, opts)
 
 // Alternatively, apply after instantiation 
 state.use(yourMiddleware)
@@ -216,7 +216,7 @@ state.use(yourMiddleware)
 
 If you have highly complex requirements, look into a fully integrated solution like NGXS or NgRX. 
 
-**Global Store, Redux Pattern**. If you want global store, create a service that instantiates a single `StatefulObject` then pass it around with Angular's DI. 
+**Global Store, Redux Pattern**. If you want global store, create a service that instantiates a single `ReactiveObject` then pass it around with Angular's DI. 
 
 **Smart parent, dumb children**. It's common to make a parent component stateful, then pass the state context down via `@Input()`. Don't be afraid to use multiple state containers. Each container gets a unique name and it's own instance in devtools. 
 

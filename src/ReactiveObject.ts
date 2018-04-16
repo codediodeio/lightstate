@@ -8,11 +8,15 @@ import { map, tap, distinctUntilChanged, finalize } from 'rxjs/operators';
 import { CustomAction, MiddlewareFn, Options, Getter } from './interfaces';
 import { rando, bypass, logger } from './functions';
 
-export class StatefulObject<T> extends BehaviorSubject<any> {
+export class Action {
+  constructor(public type: string, public payload?: any) { }
+}
+
+export class ReactiveObject<T> extends BehaviorSubject<any> {
   devTools: any;
   logger: MiddlewareFn | false;
   middleware: MiddlewareFn;
-  actions$: BehaviorSubject<any>;
+  actions$: ActionStream<any>;
   subs: { [key: string]: Subscription };
 
   constructor(private _default: any, public opts?: Options) {
@@ -75,23 +79,32 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   /// MUTATIONS
 
   set(data: any) {
-    this.execute(this.value, data, this.actName('SET'), this.opts);
+    const action = new Action(this.actName('SET'), data);
+
+    this.execute(this.value, data, action, this.opts);
   }
 
   setAt(path: string, data: any) {
+    const action = new Action(this.actName(`SET@${path}`), data);
+
     const curr = this.value;
     const val = set(curr, path, data);
     const next = { ...this.value, ...val };
-    this.execute(this.value, data, this.actName(`SET@${path}`), this.opts);
+    this.execute(this.value, data, action, this.opts);
   }
 
   update(data: any) {
+    const action = new Action(this.actName(`UPDATE`), data);
     const next = { ...this.value, ...data };
-    this.execute(this.value, next, this.actName('UPDATE'), this.opts);
+    this.execute(this.value, next, action, this.opts);
   }
 
-  updateAt(path: string, data: any, opts?: any) {
-    // const val = set(this.value, path, data)
+  updateAt(path: string, data: any, opts = {} as any) {
+    // Format Action
+    const name = opts.name || 'UPDATE';
+    const action = new Action(this.actName(`${name}@${path}`), data);
+
+    // Mutate Next
     const curr = this.value;
     let exists = get(curr, path);
     if (exists) {
@@ -99,33 +112,39 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
     }
     const val = set(curr, path, data);
     const next = { ...this.value, ...val };
-    const name = get(opts, 'name') || 'UPDATE';
-    this.execute(this.value, next, this.actName(`${name}@${path}`), this.opts);
+
+    // Execute
+    this.execute(this.value, next, action, this.opts);
   }
 
   remove(path: string) {
+    const action = new Action(this.actName(`REMOVE@${path}`));
     const val = this.value;
     unset(val, path);
     const next = { ...this.value, ...val };
-    this.execute(this.value, next, this.actName(`REMOVE@${path}`), this.opts);
+    this.execute(this.value, next, action, this.opts);
   }
 
   reset() {
-    this.execute(this.value, this._default, this.actName('RESET'), this.opts);
+    const action = new Action(this.actName('RESET'));
+    this.execute(this.value, this._default, action, this.opts);
   }
 
   clear() {
-    this.execute(this.value, {}, this.actName('CLEAR'), this.opts);
+    const action = new Action(this.actName('CLEAR'));
+    this.execute(this.value, {}, action, this.opts);
   }
 
   dispatch(act: CustomAction) {
+    const action = new Action(this.actName(act.type), act.payload);
     const next = act.handler(this.value, act.payload);
-    this.execute(this.value, next, this.actName(act.type), this.opts);
+    this.execute(this.value, next, action, this.opts);
   }
 
   signal(name: string) {
+    const action = new Action(this.actName(name));
     const curr = this.value;
-    this.execute(curr, curr, name, this.opts);
+    this.execute(curr, curr, action, this.opts);
   }
 
   /// FEED
@@ -195,6 +214,7 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   }
 
   private execute(state, next, action, opts) {
+    action = this.stringToAction(action)
     next = this.middleware(state, next, action, opts);
     this.runDebuggers(state, next, action, opts);
     this.next(next);
@@ -204,6 +224,10 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   private runDebuggers(state, next, action, opts) {
     if (this.devTools) this.devTools.send(action, next);
     if (this.logger) this.logger(state, next, action, opts);
+  }
+
+  private stringToAction(action) {
+   return (action instanceof Action) ? action : new Action(action) 
   }
 
   /// UTILS

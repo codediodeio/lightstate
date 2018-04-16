@@ -1,4 +1,4 @@
-import { StatefulObject } from '../src/StatefulObject';
+import { ReactiveObject } from '../src/ReactiveObject';
 import { Observable } from 'rxjs/Observable';
 import { first } from 'rxjs/operators';
 import { of } from 'rxjs/observable/of';
@@ -8,10 +8,10 @@ let state;
 let defaultState = { hello: 'world' };
 let defaultOpts =  { name: 'test', logger: null }
 
-describe('StatefulObject should', () => {
+describe('ReactiveObject should', () => {
 
   beforeEach(() => {
-    state = new StatefulObject(defaultState, defaultOpts)
+    state = new ReactiveObject(defaultState, defaultOpts)
   });
 
   afterEach(() => {
@@ -26,7 +26,7 @@ describe('StatefulObject should', () => {
   });
 
   test('start with an INIT action', () => {
-    expect(state.actions$.value).toBe('[test] INIT');
+    expect(state.actions$.value.type).toBe('[test] INIT');
   });
 
   test('get a plain JS value', () => {
@@ -51,6 +51,15 @@ describe('StatefulObject should', () => {
     expect(state.get()).toEqual({ ...defaultState, ...newState });
   });
 
+  test('remove values from the state', () => {
+    const newState = { foo: { bar: 'deleteme'} }
+    state.update(newState)
+    expect(state.get('foo.bar')).toEqual('deleteme');
+
+    state.remove('foo.bar')
+    expect(state.get('foo.bar')).toBeUndefined();
+  });
+
   test('clear the state', () => {
     state.clear()
     expect(state.get()).toEqual({ });
@@ -66,10 +75,10 @@ describe('StatefulObject should', () => {
   test('update the action stream', () => {
     const newState = { foo: 'bar' }
     state.update(newState)
-    expect(state.actions$.value).toEqual('[test] UPDATE');
+    expect(state.actions$.value.type).toEqual('[test] UPDATE');
 
     state.clear()
-    expect(state.actions$.value).toEqual('[test] CLEAR');
+    expect(state.actions$.value.type).toEqual('[test] CLEAR');
   });
 
   test('get values with dot notation', async () => {
