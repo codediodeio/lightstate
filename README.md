@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/codediodeio/LightStatex.svg?style=svg&circle-token=1cecb6c1f32ffe4b19de71cf3432106f07f683cf)](https://circleci.com/gh/codediodeio/LightStatex)
+[![CircleCI](https://circleci.com/gh/codediodeio/lightstate.svg?style=svg)](https://circleci.com/gh/codediodeio/lightstate)
 
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
