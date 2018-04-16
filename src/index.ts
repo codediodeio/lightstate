@@ -1,1 +1,1 @@
-export { ReactiveObject } from './ReactiveObject';
+export { StatefulObject } from './StatefulObject';

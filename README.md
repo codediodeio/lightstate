@@ -1,35 +1,66 @@
-![circle](https://circleci.com/gh/codediodeio/robx.png?circle-token=:circle-token)
+[![CircleCI](https://circleci.com/gh/codediodeio/LightStatex.svg?style=svg&circle-token=1cecb6c1f32ffe4b19de71cf3432106f07f683cf)](https://circleci.com/gh/codediodeio/LightStatex)
+
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
-# ROBx - ReactiveObject
+# Notes
 
 Status: Experimental
 
-_Why?_ Because I love what an RxJS BehaviorSubject does, but hate the way it does it.
+Part of a lesson on Continuous Integration for AngularFirebase.com
 
-_What?_ ROB provides an immutable state container designed for optimal developer happiness.
+# LightState
 
-* Simplified data selection and mutation
+_Why?_ Because the best code is the code you don't write
+
+_What?_ LightState is a magic state container designed for optimal developer happiness.
+
+* Not a library, just a drop-in tool
+* Simple data selection and mutation
 * Automatic actions
 * Automatic Observable/Promise management
 * Intercept state changes with middleware
 * Redux Dev Tools support out of the box
 * Only dependency is RxJS
 
-ROB is not opinionated. You can have one global state or multiple smaller states.
+LightState is not opinionated. You can have one global state or multiple smaller states.
 
 ## Let there be State...
 
 ```
-npm i robx -s
+npm i lightstate -s
 ```
 
-## ReactiveObject
+## Quick Start
 
-ROB provides you with one thing - a `ReactiveObject` class. It's a BehaviorSubject on steroids.
+LightState provides you with one thing - `StatefulObject`.
 
 ```js
-const state = new ReactiveObject({ username: 'Jeff' });
+const state = new StatefulObject({ username: 'Jeff' });
+
+// Read it
+state.get$('favorites'); // returns Observable
+
+// Mutate it
+state.updateAt('favorites', { beer: 'La Fin du Monde' });
+```
+
+Make sure to install [Redux Dev Tools](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?hl=en) to watch your state magically manage itself.
+
+### Automatic Actions
+
+When you mutate the state, it creates an action based on the following convention (you can override this behavior).
+
+```text
+[opts.name] ACTION@path
+```
+
+It will look like this in Redux Dev Tools
+
+```text
+[userState] UPDATE@profile.displayName
+[userState] CLEAR
+[userState] PROMISE_START@reviews.phoenix
+[userState] PROMISE_RESOLVE@reviews.phoenix
 ```
 
 ### Options
@@ -48,29 +79,12 @@ const opts = {
     devTools: false,
     middleware: myMiddlewareFunction
 }
-const state = new ReactiveObject( default, opts )
-```
-
-### Automatic Actions
-
-The object infers an action based on the following convention (you can override this behavior).
-
-```text
-[opts.name] ACTION@path
-```
-
-It will look like this in Redux Dev Tools
-
-```text
-[userState] UPDATE@profile.displayName
-[userState] CLEAR
-[userState] PROMISE_START@reviews.phoenix
-[userState] PROMISE_RESOLVE@reviews.phoenix
+const state = new StatefulObject( default, opts )
 ```
 
 ## Select
 
-All selctors can return a plain object, or `Observable` by adding `$` to the method.
+All selectors can return a plain object, or `Observable` by adding `$` to the method.
 
 ```js
 state.get$(obj => obj.username);
@@ -97,8 +111,8 @@ Perform advanced collection filtering when you have an array of objects.
 
 ```js
 state.where$('users', {
-  age: age => age > 21,
-  city: city => city === 'NYC'
+  age: v => v > 21,
+  city: v => v === 'NYC'
 });
 
 // returns filtered Observable array
@@ -146,25 +160,26 @@ state.dispatch('CHANGE_USERNAME', payload, handler);
 
 ## Async Data
 
-Crazy async stuff is why state management is a challenge on the web. The library can automatically subscribe to Observables and resolve Promises, then make updates with the resolved values. It also keeps track of all running subscriptions in the state object, so you can manage, cancel, and analyze streaming subscriptions
+Async state management is a challenge on the web. The tool can automatically subscribe to Observables and resolve Promises, then make updates with the resolved values. It also keeps track of all running subscriptions in the state object, so you can manage, cancel, and analyze streaming subscriptions
 
 ### Method 1 - Automatic
 
 ```ts
 const observable = http.get(...);
 
-this.state.feed('tasks.items', observable);
+this.state.react('tasks.items', observable);
 // note that it also works with promises
 ```
 
 The `feed` method will subscribe to the Observable (or Promise), patch the emitted values to the state, and dispatch two actions:
 
 1.  `OBSERVABLE_START@path` on subscribe
-2.  `OBSERVABLE_EMIT@path` on emited value
+2.  `OBSERVABLE_SET@path` update with emitted data
 
-Bonus feature: If you feed multiple obserables to a path, it will automatically cancel previous requests. No race conditions or memory leaks - last dispatch wins.
+Bonus features: If you feed multiple Observables to a path, it will automatically cancel previous requests. It will also let you know when your observable sends the complete signal.
 
-3.  `OBSERVABLE_CANCELED@path` on complete
+3.  `OBSERVABLE_COMPLETE@path` on complete
+4.  `OBSERVABLE_CANCEL@path` if unsubscribed automatically
 
 You can access all active subscriptions the stateful object with `state.subs`
 
@@ -172,7 +187,7 @@ Works great with realtime data feeds like Firebase.
 
 ### Method 2 - Manually
 
-You can dispatch arbitary actions to signal the start of something async. This can be useful debugging or reacting to the action stream (see method 3).
+You can dispatch arbitrary actions to signal the start of something async. This can be useful debugging or reacting to the action stream (see method 3).
 
 ```js
 this.state.signal('MAKE_GET_REQUEST');
@@ -212,7 +227,7 @@ const yourMiddleware = (current, next, action, opts) => {
 You can pass middleware through options or by calling `use`. Note: Only one middleware function is allowed per StateContext object.
 
 ```ts
-const state = new ReactiveObject({ name: 'rob' }, opts);
+const state = new StatefulObject({ name: 'bubba' }, opts);
 state.use(yourMiddleware);
 ```
 
@@ -220,7 +235,7 @@ state.use(yourMiddleware);
 
 If you have highly complex requirements, look into a fully integrated solution like NGXS or NgRX.
 
-**Global Store, Redux Pattern**. If you want global store, create a service that instantiates a single `ReactiveObject` then pass it around with Angular's DI.
+**Global Store, Redux Pattern**. If you want global store, create a service that instantiates a single `StatefulObject` then pass it around with Angular's DI.
 
 **Smart parent, dumb children**. It's common to make a parent component stateful, then pass the state context down via `@Input()`. Don't be afraid to use multiple state containers. Each container gets a unique name and it's own instance in devtools.
 

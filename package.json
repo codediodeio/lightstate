@@ -1,11 +1,11 @@
 {
-  "name": "robx",
+  "name": "lightstate",
   "version": "0.0.2",
   "description": "reactive state container",
-  "main": "./dist/ReactiveObject.js",
-  "types": "./dist/ReactiveObject.d.ts",
+  "main": "./dist/StatefulObject.js",
+  "types": "./dist/StatefulObject.d.ts",
   "scripts": {
-    "precommit": "pretty-quick --staged",
+    "precommit": "pretty-quick --staged && npm run test",
     "build": "rm -rf dist && tsc",
     "test": "jest",
     "test:watch": "jest --watchAll"
@@ -29,6 +29,7 @@
     "ts-jest": "^22.4.3",
     "ts-loader": "^3.5.0",
     "tslib": "^1.9.0",
+    "typedoc": "^0.11.1",
     "typescript": "^2.8.1"
   },
   "jest": {

@@ -12,7 +12,7 @@ export class Action {
   constructor(public type: string, public payload?: any) {}
 }
 
-export class ReactiveObject<T> extends BehaviorSubject<any> {
+export class StatefulObject<T> extends BehaviorSubject<any> {
   devTools: any;
   logger: MiddlewareFn | false;
   middleware: MiddlewareFn;
@@ -47,6 +47,11 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
 
   /// READS
 
+  /**
+   * Grab a state slice as an observable.
+   * @param path    Pass a string value get('some.data'), or callback: state => state.some.data
+   * @returns       Observable of selected state
+   */
   get$<T>(path?: Getter): Observable<T> {
     let obs = this.asObservable();
     if (typeof path === 'function') {
@@ -59,6 +64,11 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     return obs;
   }
 
+  /**
+   * Grab a state slice as a plain js object.
+   * @param  {Getter} path?
+   * @returns selected state as its stored primitive: object, string, etc.
+   */
   get<T>(path?: Getter): T {
     let val = this.value;
     if (typeof path === 'function') {
@@ -82,13 +92,13 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     this.execute(this.value, data, action, this.opts);
   }
 
-  setAt(path: string, data: any): void {
-    const action = new Action(this.actName(`SET@${path}`), data);
+  setAt(path: string, data: any, opts = {} as any): void {
+    const name = opts.name || 'SET';
+    const action = new Action(this.actName(`${name}@${path}`), data);
 
     const curr = this.value;
-    const val = set(curr, path, data);
-    const next = { ...this.value, ...val };
-    this.execute(this.value, data, action, this.opts);
+    const next = set(curr, path, data);
+    this.execute(this.value, next, action, this.opts);
   }
 
   update(data: any): void {
@@ -133,13 +143,13 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     this.execute(this.value, {}, action, this.opts);
   }
 
-  dispatch(act: CustomAction) {
+  dispatch(act: CustomAction): void {
     const action = new Action(this.actName(act.type), act.payload);
     const next = act.handler(this.value, act.payload);
     this.execute(this.value, next, action, this.opts);
   }
 
-  signal(name: string) {
+  signal(name: string): void {
     const action = new Action(this.actName(name));
     const curr = this.value;
     this.execute(curr, curr, action, this.opts);
@@ -147,7 +157,7 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
 
   /// FEED
 
-  feed(path: string, data: Observable<any> | Promise<any>, opts?: any) {
+  react(path: string, data: Observable<any> | Promise<any>, opts = {} as any): void {
     // Obsv
     if (this.isAsync(data) === 'Observable') {
       this.observableCancelPrev(path);
@@ -155,10 +165,10 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
       const sub = (data as Observable<any>)
         .pipe(
           tap(val => {
-            this.updateAt(path, val, { name: 'OBSERVABLE_EMIT' });
+            this.setAt(path, val, { name: 'OBSERVABLE_SET' });
           }),
           finalize(() => {
-            this.signal(`OBSERVABLE_START@${path}`);
+            this.signal(`OBSERVABLE_COMPLETE@${path}`);
           })
         )
         .subscribe();
@@ -171,7 +181,7 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
       const sub = fromPromise(data as Promise<any>)
         .pipe(
           tap(val => {
-            this.updateAt(path, val, { name: 'PROMISE_RESOLVE' });
+            this.setAt(path, val, { name: 'PROMISE_SET' });
           })
         )
         .subscribe();
