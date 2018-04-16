@@ -42,7 +42,8 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
     if (this.opts.devTools && browserDevTools) {
       this.devTools = browserDevTools.connect(this.opts.devTools);
     }
-    this.execute(null, _default, this.actName('INIT'), this.opts);
+    const initAction = new Action(this.actName('INIT'));
+    this.next(_default, initAction);
   }
 
   /// READS
@@ -88,8 +89,7 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
 
   set(data: any): void {
     const action = new Action(this.actName('SET'), data);
-
-    this.execute(this.value, data, action, this.opts);
+    this.next(data, action);
   }
 
   setAt(path: string, data: any, opts = {} as any): void {
@@ -98,13 +98,13 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
 
     const curr = this.value;
     const next = set(curr, path, data);
-    this.execute(this.value, next, action, this.opts);
+    this.next(next, action);
   }
 
   update(data: any): void {
     const action = new Action(this.actName(`UPDATE`), data);
     const next = { ...this.value, ...data };
-    this.execute(this.value, next, action, this.opts);
+    this.next(next, action);
   }
 
   updateAt(path: string, data: any, opts = {} as any): void {
@@ -122,7 +122,7 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
     const next = { ...this.value, ...val };
 
     // Execute
-    this.execute(this.value, next, action, this.opts);
+    this.next(next, action);
   }
 
   remove(path: string): void {
@@ -130,39 +130,39 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
     const val = this.value;
     unset(val, path);
     const next = { ...this.value, ...val };
-    this.execute(this.value, next, action, this.opts);
+    this.next(next, action);
   }
 
   reset(): void {
     const action = new Action(this.actName('RESET'));
-    this.execute(this.value, this._default, action, this.opts);
+    this.next(this._default, action);
   }
 
   clear(): void {
     const action = new Action(this.actName('CLEAR'));
-    this.execute(this.value, {}, action, this.opts);
+    this.next({}, action);
   }
 
   dispatch(act: CustomAction): void {
     const action = new Action(this.actName(act.type), act.payload);
     const next = act.handler(this.value, act.payload);
-    this.execute(this.value, next, action, this.opts);
+    this.next(next, action);
   }
 
   signal(name: string): void {
     const action = new Action(this.actName(name));
-    const curr = this.value;
-    this.execute(curr, curr, action, this.opts);
+    this.next(this.value, action);
   }
 
   /// FEED
 
-  react(path: string, data: Observable<any> | Promise<any>, opts = {} as any): void {
+  // TODO why wont this union type allow "of(string)"?
+  async(path: string, dataSource: Observable<any> | Promise<any> | any, opts = {} as any): void {
     // Obsv
-    if (this.isAsync(data) === 'Observable') {
+    if (this.isAsync(dataSource) === 'Observable') {
       this.observableCancelPrev(path);
       this.signal(`OBSERVABLE_START@${path}`);
-      const sub = (data as Observable<any>)
+      const sub = (dataSource as Observable<any>)
         .pipe(
           tap(val => {
             this.setAt(path, val, { name: 'OBSERVABLE_SET' });
@@ -175,10 +175,10 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
 
       this.subs[path] = sub;
     }
-    if (this.isAsync(data) === 'Promise') {
+    if (this.isAsync(dataSource) === 'Promise') {
       this.promiseCancelPrev(path);
       this.signal(`PROMISE_START@${path}`);
-      const sub = fromPromise(data as Promise<any>)
+      const sub = fromPromise(dataSource as Promise<any>)
         .pipe(
           tap(val => {
             this.setAt(path, val, { name: 'PROMISE_SET' });
@@ -221,15 +221,16 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
     this.middleware = middleware;
   }
 
-  private execute(state, next, action, opts) {
-    action = this.stringToAction(action);
-    next = this.middleware(state, next, action, opts);
-    this.runDebuggers(state, next, action, opts);
-    this.next(next);
+  next(next, action?: Action) {
     this.actions$.next(action);
+    action = this.stringToAction(action);
+    next = this.middleware(this.value, next, action, this.opts);
+    this.runDebuggers(this.value, next, action, this.opts);
+    super.next(next);
   }
 
   private runDebuggers(state, next, action, opts) {
+    console.log('DEV', action);
     if (this.devTools) this.devTools.send(action, next);
     if (this.logger) this.logger(state, next, action, opts);
   }

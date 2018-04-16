@@ -167,7 +167,7 @@ Async state management is a challenge on the web. The tool can automatically sub
 ```ts
 const observable = http.get(...);
 
-this.state.react('tasks.items', observable);
+this.state.async('tasks.items', observable);
 // note that it also works with promises
 ```
 
@@ -224,7 +224,7 @@ const yourMiddleware = (current, next, action, opts) => {
 };
 ```
 
-You can pass middleware through options or by calling `use`. Note: Only one middleware function is allowed per StateContext object.
+You can pass middleware through options or by calling `use`. Note: Only one middleware function is allowed per StatefulObject.
 
 ```ts
 const state = new StatefulObject({ name: 'bubba' }, opts);

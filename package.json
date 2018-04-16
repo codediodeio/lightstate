@@ -2,8 +2,8 @@
   "name": "lightstate",
   "version": "0.0.2",
   "description": "reactive state container",
-  "main": "./dist/StatefulObject.js",
-  "types": "./dist/StatefulObject.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "precommit": "pretty-quick --staged && npm run test",
     "build": "rm -rf dist && tsc",

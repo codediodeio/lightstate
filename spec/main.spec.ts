@@ -106,7 +106,7 @@ describe('StatefulObject should', () => {
     expect(state.get('drinks')).toBeUndefined();
     expect(state.subs).toEqual({});
 
-    state.react('drinks', obsv);
+    state.async('drinks', obsv);
     expect(state.subs.drinks).toBeDefined();
 
     let val = await asyncGet(state.get$('drinks'));
