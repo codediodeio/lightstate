@@ -5,17 +5,12 @@
   "main": "./dist/ReactiveObject.js",
   "types": "./dist/ReactiveObject.d.ts",
   "scripts": {
+    "precommit": "pretty-quick --staged",
     "build": "rm -rf dist && tsc",
     "test": "jest",
     "test:watch": "jest --watchAll"
   },
-  "keywords": [
-    "rxjs",
-    "state-management",
-    "redux",
-    "reactive",
-    "angular"
-  ],
+  "keywords": ["rxjs", "state-management", "redux", "reactive", "angular"],
   "author": "Jeff Delaney",
   "license": "MIT",
   "dependencies": {
@@ -25,9 +20,12 @@
   "devDependencies": {
     "@types/jest": "^22.2.3",
     "@types/lodash": "^4.14.106",
+    "husky": "^1.0.0-rc.1",
     "jasmine": "^3.1.0",
     "jest": "^22.4.3",
     "lodash-webpack-plugin": "^0.11.5",
+    "prettier": "^1.12.0",
+    "pretty-quick": "^1.4.1",
     "ts-jest": "^22.4.3",
     "ts-loader": "^3.5.0",
     "tslib": "^1.9.0",
@@ -38,13 +36,6 @@
       "^.+\\.tsx?$": "ts-jest"
     },
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json",
-      "node"
-    ]
+    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"]
   }
 }

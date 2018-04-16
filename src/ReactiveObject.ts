@@ -9,7 +9,7 @@ import { CustomAction, MiddlewareFn, Options, Getter } from './interfaces';
 import { rando, bypass, logger } from './functions';
 
 export class Action {
-  constructor(public type: string, public payload?: any) { }
+  constructor(public type: string, public payload?: any) {}
 }
 
 export class ReactiveObject<T> extends BehaviorSubject<any> {
@@ -35,14 +35,12 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
     this.actions$ = new ActionStream(null);
 
     if (this.opts.logger) {
-        this.logger = this.opts.logger;
+      this.logger = this.opts.logger;
     }
 
-    const browserDevTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__
+    const browserDevTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__;
     if (this.opts.devTools && browserDevTools) {
-      this.devTools = browserDevTools.connect(
-        this.opts.devTools
-      );
+      this.devTools = browserDevTools.connect(this.opts.devTools);
     }
     this.execute(null, _default, this.actName('INIT'), this.opts);
   }
@@ -214,7 +212,7 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
   }
 
   private execute(state, next, action, opts) {
-    action = this.stringToAction(action)
+    action = this.stringToAction(action);
     next = this.middleware(state, next, action, opts);
     this.runDebuggers(state, next, action, opts);
     this.next(next);
@@ -227,10 +225,10 @@ export class ReactiveObject<T> extends BehaviorSubject<any> {
   }
 
   private stringToAction(action) {
-   return (action instanceof Action) ? action : new Action(action) 
+    return action instanceof Action ? action : new Action(action);
   }
 
-  /// UTILS
+  /// UTILS ///
 
   private actName(val) {
     return `[${this.opts.name}] ${val}`;
