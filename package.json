@@ -1,9 +1,10 @@
 {
   "name": "lightstate",
-  "version": "0.0.2",
+  "version": "0.0.7",
   "description": "reactive state container",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": ["dist/*"],
   "scripts": {
     "precommit": "pretty-quick --staged && npm run test",
     "build": "rm -rf dist && tsc",
@@ -24,6 +25,7 @@
     "jasmine": "^3.1.0",
     "jest": "^22.4.3",
     "lodash-webpack-plugin": "^0.11.5",
+    "ng-packagr": "^2.4.2",
     "prettier": "^1.12.0",
     "pretty-quick": "^1.4.1",
     "ts-jest": "^22.4.3",

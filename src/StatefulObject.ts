@@ -230,7 +230,6 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   }
 
   private runDebuggers(state, next, action, opts) {
-    console.log('DEV', action);
     if (this.devTools) this.devTools.send(action, next);
     if (this.logger) this.logger(state, next, action, opts);
   }

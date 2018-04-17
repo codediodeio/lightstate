@@ -14,7 +14,7 @@
     "importHelpers": true,
     "experimentalDecorators": true
   },
-  "include": ["./src/index.ts"],
+  "files": ["./index.ts"],
   "jest": {
     "globals": {
       "ts-jest": {
