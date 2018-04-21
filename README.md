@@ -10,7 +10,7 @@ Part of a lesson on Continuous Integration for AngularFirebase.com
 
 # LightState
 
-_Why?_ Because the best code is the code you don't write
+_Why?_ Because the best code is the code you don't write. Convention over configuration.
 
 _What?_ LightState is a magic state container designed for optimal developer happiness.
 
@@ -35,32 +35,49 @@ npm i lightstate -s
 LightState provides you with one thing - `StatefulObject`.
 
 ```js
-const state = new StatefulObject({ username: 'Jeff' });
+// Define it
+const state = new StatefulObject({ favorites: null });
+
+// Slice it
+const slice = state.at('favorites');
 
 // Read it
-state.get$('favorites'); // returns Observable
+slice.get$(); // as Rx Observable
+slice.snapshot; // as JS object
 
 // Mutate it
-state.updateAt('favorites', { beer: 'La Fin du Monde' });
+slice.update({ beer: 'La Fin du Monde' });
 ```
 
 Make sure to install [Redux Dev Tools](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?hl=en) to watch your state magically manage itself.
 
-### Automatic Actions
+### Conventional Actions
+
+Lightstate removes the mental boilerplate of redux by generating actions based on predictible [conventions](https://en.wikipedia.org/wiki/Convention_over_configuration).
 
 When you mutate the state, it creates an action based on the following convention (you can override this behavior).
 
+name - optional name of the stateful object
+action - name of the action
+path - where the action occured in dot notation
+
 ```text
-[opts.name] ACTION@path
+[name] action@path
 ```
 
-It will look like this in Redux Dev Tools
+Synchronous mutations will look this this.
 
 ```text
 [userState] UPDATE@profile.displayName
 [userState] CLEAR
-[userState] PROMISE_START@reviews.phoenix
-[userState] PROMISE_RESOLVE@reviews.phoenix
+```
+
+Async operations have their own convention. (1) start (2) mutate (3) complete/cancel/err.
+
+```text
+[userState] OBSERVABLE_START@reviews.phoenix
+[userState] OBSERVABLE_UPDATE@reviews.phoenix
+[userState] OBSERVABLE_COMPLETE@reviews.phoenix
 ```
 
 ### Options
@@ -114,13 +131,12 @@ state.where$('users', {
   age: v => v > 21,
   city: v => v === 'NYC'
 });
-
 // returns filtered Observable array
 ```
 
 ## Mutate
 
-Set will override the entire object with new data
+Set will override the entire object with new data.
 
 ```js
 state.set({ username: 'nash' });
@@ -132,10 +148,11 @@ Update will only mutate the specified values.
 state.update({ age: 30 });
 ```
 
-UpdateAt will mutate a deeply nested property
+Modify deeply nested properties
 
 ```js
 state.updateAt('users.userABC.profile', { name: 'doug' });
+state.setAt(...);
 ```
 
 Also
@@ -143,6 +160,20 @@ Also
 ```js
 state.clear(); // next state {}
 state.reset(); // reset to initial state
+```
+
+## Slice
+
+In most cases, you will need a reference to a specific slice of the stateful object.
+
+```ts
+const beer = state.at('beers.budlight.platinum');
+```
+
+A slice is just a scoped reference to the parent object, allowing you to to make references to deeply nested paths in the state.
+
+```js
+beer.update({ abv: 6.0 });
 ```
 
 ## Dispatch Custom Actions
@@ -191,7 +222,7 @@ You can dispatch arbitrary actions to signal the start of something async. This 
 
 ```js
 this.state.signal('MAKE_GET_REQUEST');
-http.get(...).pipe(tap(data => {
+http.get(url).pipe(tap(data => {
     state.update(data)
 })
 .subscribe()
