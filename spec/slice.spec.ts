@@ -24,7 +24,7 @@ describe('Slice should', () => {
   });
 
   test('get its scoped value', () => {
-    expect(slice.get()).toEqual('world');
+    expect(slice.value).toEqual('world');
     expect(slice.exists).toBeTruthy();
   });
 
@@ -36,16 +36,16 @@ describe('Slice should', () => {
   });
 
   test('be able to update itself', () => {
-    // console.log(slice.get())
+    // console.log(slice.value)
     const newVal = { howdy: 'partner' };
-    expect(slice.get()).toEqual('world');
+    expect(slice.value).toEqual('world');
 
     slice.update(newVal);
-    expect(slice.get()).toEqual(newVal);
+    expect(slice.value).toEqual(newVal);
 
     const anotherVal = { hasta: 'la vista' };
     slice.update(anotherVal);
-    expect(slice.get()).toEqual({ ...newVal, ...anotherVal });
+    expect(slice.value).toEqual({ ...newVal, ...anotherVal });
   });
 
   test('be able to delete itself', () => {
@@ -57,7 +57,7 @@ describe('Slice should', () => {
   test('be able to set itself', () => {
     const newVal = { foo: 'bar' };
     slice.set(newVal);
-    expect(slice.get()).toEqual(newVal);
+    expect(slice.value).toEqual(newVal);
   });
 
   test('be instantiated as a Slice', () => {});

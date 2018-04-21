@@ -9,7 +9,7 @@ import { AsyncMutation } from './AsyncMutation';
 export class Slice<T> {
   constructor(private root: StatefulObject<any>, public path: string) {}
 
-  get() {
+  get value() {
     return this.root.get(this.path);
   }
 

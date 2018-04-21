@@ -43,7 +43,7 @@ const slice = state.at('favorites');
 
 // Read it
 slice.get$(); // as Rx Observable
-slice.snapshot; // as JS object
+slice.value; // as JS object
 
 // Mutate it
 slice.update({ beer: 'La Fin du Monde' });
@@ -101,20 +101,17 @@ const state = new StatefulObject( default, opts )
 
 ## Select
 
-All selectors can return a plain object, or `Observable` by adding `$` to the method.
+All selectors can return a plain object, or `Observable` with a `$` convention.
 
 ```js
-state.get$(obj => obj.username);
-// returns Observable
+// From Root state
+state.get('hello.world'); // JS Object
+state.get$('hello.world'); // Rx Observable
 
-state.get(obj => obj.username);
-// returns JS Object
-```
-
-Or grab properties using dot notation as a string.
-
-```js
-state.get$('some.deeply.nested.array[23]');
+// From Slice
+const slice = state.at('hello.world');
+slice.value; // JS Object
+slice.get$(); // Rx Observable
 ```
 
 See if a property exists

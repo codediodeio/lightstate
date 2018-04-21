@@ -35,7 +35,7 @@ describe('StatefulObject should', () => {
   });
 
   test('get a plain JS value', () => {
-    expect(state.get()).toBe(defaultState);
+    expect(state.value).toBe(defaultState);
   });
 
   test('get an Observable', async () => {
@@ -51,7 +51,7 @@ describe('StatefulObject should', () => {
   test('mutate destructively on set', () => {
     const newState = { foo: 'bar' };
     state.set(newState);
-    expect(state.get()).toEqual(newState);
+    expect(state.value).toEqual(newState);
   });
 
   test('mutate destructively on set to a deep path', () => {
@@ -63,7 +63,7 @@ describe('StatefulObject should', () => {
   test('mutate non-destructively on update', () => {
     const newState = { foo: 'bar' };
     state.update(newState);
-    expect(state.get()).toEqual({ ...defaultState, ...newState });
+    expect(state.value).toEqual({ ...defaultState, ...newState });
   });
 
   test('remove values from the state', () => {
@@ -77,14 +77,14 @@ describe('StatefulObject should', () => {
 
   test('clear the state', () => {
     state.clear();
-    expect(state.get()).toEqual({});
+    expect(state.value).toEqual({});
   });
 
   test('reset to defaults', () => {
     const newState = { foo: 'bar' };
     state.update(newState);
     state.reset();
-    expect(state.get()).toEqual(defaultState);
+    expect(state.value).toEqual(defaultState);
   });
 
   test('update the action stream', () => {
@@ -148,7 +148,7 @@ describe('StatefulObject should', () => {
     };
 
     state.dispatch(action);
-    expect(state.get().cool).toEqual(123);
+    expect(state.value.cool).toEqual(123);
   });
 
   test.skip('dispatch and mutate with async actions', () => {
@@ -161,7 +161,7 @@ describe('StatefulObject should', () => {
     };
 
     state.dispatch(action);
-    expect(state.get().cool).toEqual(123);
+    expect(state.value.cool).toEqual(123);
   });
 
   test.skip('cancel uncompleted async operations', () => {});
