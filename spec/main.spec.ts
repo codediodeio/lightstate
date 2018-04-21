@@ -2,6 +2,8 @@ import { StatefulObject } from '../src/StatefulObject';
 import { Observable } from 'rxjs/Observable';
 import { first } from 'rxjs/operators';
 import { of } from 'rxjs/observable/of';
+import { asyncGet } from './utils';
+import { Action } from '../src/Action';
 
 let state;
 let defaultState = { hello: 'world' };
@@ -16,6 +18,8 @@ describe('StatefulObject should', () => {
 
   test('be defined', () => {
     expect(state).toBeDefined();
+    expect(state).toBeInstanceOf(StatefulObject);
+    // expect(state).not.toThrowError(new StatefulObject({}) )
   });
 
   test.skip('should not expose the next method', () => {
@@ -92,6 +96,16 @@ describe('StatefulObject should', () => {
     expect(state.actions$.value.type).toEqual('[test] CLEAR');
   });
 
+  test('filters the action stream', async () => {
+    const stream = state.actions$.ofType('[test] UPDATE');
+
+    const newState = { foo: 'bar' };
+    state.update(newState);
+
+    let val = await asyncGet(stream);
+    expect(val.type).toEqual('[test] UPDATE');
+  });
+
   test('get values with dot notation', async () => {
     const newState = { foo: { bar: { baz: 'deep' } } };
     state.update(newState);
@@ -107,7 +121,6 @@ describe('StatefulObject should', () => {
     expect(state.subs).toEqual({});
 
     state.async('drinks', obsv);
-    expect(state.subs.drinks).toBeDefined();
 
     let val = await asyncGet(state.get$('drinks'));
     expect(val).toEqual(newState);
@@ -125,6 +138,32 @@ describe('StatefulObject should', () => {
     expect(state.get('gotcha')).toBeTruthy();
   });
 
+  test('dispatch and mutate with custom actions', () => {
+    const action = {
+      type: 'custom',
+      payload: 123,
+      handler: (state, payload) => {
+        return { state, cool: payload };
+      }
+    };
+
+    state.dispatch(action);
+    expect(state.get().cool).toEqual(123);
+  });
+
+  test.skip('dispatch and mutate with async actions', () => {
+    const action = {
+      type: 'custom',
+      payload: 123,
+      handler: async (state, payload) => {
+        return { state, cool: payload };
+      }
+    };
+
+    state.dispatch(action);
+    expect(state.get().cool).toEqual(123);
+  });
+
   test.skip('cancel uncompleted async operations', () => {});
 
   test.skip('work with promises', () => {});
@@ -135,7 +174,3 @@ describe('StatefulObject should', () => {
 });
 
 /// HELPERS
-
-function asyncGet(observable) {
-  return observable.pipe(first()).toPromise();
-}

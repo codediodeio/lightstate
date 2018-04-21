@@ -3,24 +3,25 @@ import { Observable } from 'rxjs/Observable';
 import { fromPromise } from 'rxjs/observable/fromPromise';
 import { Subscription } from 'rxjs/Subscription';
 import { ActionStream } from './ActionStream';
-import { set, has, unset, get, filter, conforms } from 'lodash';
+import { set, has, unset, get, filter, conforms, isPlainObject } from 'lodash';
 import { map, tap, distinctUntilChanged, finalize } from 'rxjs/operators';
 import { CustomAction, MiddlewareFn, Options, Getter } from './interfaces';
 import { rando, bypass, logger } from './functions';
+import { Slice } from './Slice';
+import { Action } from './Action';
+import { ActionDefaults as a } from './ActionDefaults';
+import { stringToAction, isAsync } from './utils';
+import { AsyncMutation } from './AsyncMutation';
 
-export class Action {
-  constructor(public type: string, public payload?: any) {}
-}
-
-export class StatefulObject<T> extends BehaviorSubject<any> {
+export class StatefulObject<T> {
   devTools: any;
   logger: MiddlewareFn | false;
   middleware: MiddlewareFn;
-  actions$: ActionStream<any>;
-  subs: { [key: string]: Subscription };
+  actions$: BehaviorSubject<any>;
+  subs: { [key: string]: AsyncMutation };
+  _state: any;
 
   constructor(private _default: any, public opts?: Options) {
-    super(null);
     const defaultName = get(opts, 'name') || rando();
     this.opts = {
       name: defaultName,
@@ -33,6 +34,7 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
 
     this.middleware = this.opts.middleware || bypass;
     this.actions$ = new ActionStream(null);
+    this._state = new BehaviorSubject(null);
 
     if (this.opts.logger) {
       this.logger = this.opts.logger;
@@ -46,6 +48,12 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
     this.next(_default, initAction);
   }
 
+  /// SLICE
+
+  at(path: string) {
+    return new Slice(this, path);
+  }
+
   /// READS
 
   /**
@@ -54,7 +62,7 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
    * @returns       Observable of selected state
    */
   get$<T>(path?: Getter): Observable<T> {
-    let obs = this.asObservable();
+    let obs = this._state.asObservable();
     if (typeof path === 'function') {
       obs = obs.pipe(map(val => path(val)), distinctUntilChanged());
     }
@@ -88,12 +96,12 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   /// MUTATIONS
 
   set(data: any): void {
-    const action = new Action(this.actName('SET'), data);
+    const action = new Action(this.actName(a.Set), data);
     this.next(data, action);
   }
 
   setAt(path: string, data: any, opts = {} as any): void {
-    const name = opts.name || 'SET';
+    const name = opts.name || a.Set;
     const action = new Action(this.actName(`${name}@${path}`), data);
 
     const curr = this.value;
@@ -102,22 +110,23 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   }
 
   update(data: any): void {
-    const action = new Action(this.actName(`UPDATE`), data);
+    const action = new Action(this.actName(a.Update), data);
     const next = { ...this.value, ...data };
     this.next(next, action);
   }
 
   updateAt(path: string, data: any, opts = {} as any): void {
     // Format Action
-    const name = opts.name || 'UPDATE';
+    const name = opts.name || a.Update;
     const action = new Action(this.actName(`${name}@${path}`), data);
 
     // Mutate Next
     const curr = this.value;
     let exists = get(curr, path);
-    if (exists) {
+    if (isPlainObject(exists)) {
       data = { ...exists, ...data };
     }
+
     const val = set(curr, path, data);
     const next = { ...this.value, ...val };
 
@@ -126,7 +135,7 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   }
 
   remove(path: string): void {
-    const action = new Action(this.actName(`REMOVE@${path}`));
+    const action = new Action(this.actName(`${a.Remove}@${path}`));
     const val = this.value;
     unset(val, path);
     const next = { ...this.value, ...val };
@@ -134,18 +143,18 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   }
 
   reset(): void {
-    const action = new Action(this.actName('RESET'));
+    const action = new Action(this.actName(a.Reset));
     this.next(this._default, action);
   }
 
   clear(): void {
-    const action = new Action(this.actName('CLEAR'));
+    const action = new Action(this.actName(a.Clear));
     this.next({}, action);
   }
 
-  dispatch(act: CustomAction): void {
-    const action = new Action(this.actName(act.type), act.payload);
-    const next = act.handler(this.value, act.payload);
+  dispatch(customAction: CustomAction): void {
+    const action = new Action(this.actName(customAction.type), customAction.payload);
+    const next = customAction.handler(this.value, customAction.payload);
     this.next(next, action);
   }
 
@@ -157,50 +166,29 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
   /// FEED
 
   // TODO why wont this union type allow "of(string)"?
-  async(path: string, dataSource: Observable<any> | Promise<any> | any, opts = {} as any): void {
-    // Obsv
-    if (this.isAsync(dataSource) === 'Observable') {
-      this.observableCancelPrev(path);
-      this.signal(`OBSERVABLE_START@${path}`);
-      const sub = (dataSource as Observable<any>)
-        .pipe(
-          tap(val => {
-            this.setAt(path, val, { name: 'OBSERVABLE_SET' });
-          }),
-          finalize(() => {
-            this.signal(`OBSERVABLE_COMPLETE@${path}`);
-          })
-        )
-        .subscribe();
 
-      this.subs[path] = sub;
+  /**
+   * Unwrap a Promise or Observable, then update the state with the emitted value
+   * @param async    Pass a string value get('some.data'), or callback: state => state.some.data
+   * @returns       void
+   */
+  async(path: string, dataSource: Observable<any> | Promise<any> | any, opts = {} as any): AsyncMutation {
+    const current = this.subs[path];
+    if (current) {
+      current.stop();
     }
-    if (this.isAsync(dataSource) === 'Promise') {
-      this.promiseCancelPrev(path);
-      this.signal(`PROMISE_START@${path}`);
-      const sub = fromPromise(dataSource as Promise<any>)
-        .pipe(
-          tap(val => {
-            this.setAt(path, val, { name: 'PROMISE_SET' });
-          })
-        )
-        .subscribe();
 
-      this.subs[path] = sub;
-    }
+    const mutation = new AsyncMutation(this, path, dataSource, opts);
+    this.subs[path] = mutation;
+    mutation.run();
+    return mutation;
   }
 
-  private observableCancelPrev(path) {
-    if (this.subs[path]) {
-      this.signal(`OBSERVABLE_CANCEL@${path}`);
-      this.subs[path].unsubscribe();
-    }
-  }
-
-  private promiseCancelPrev(path) {
-    if (this.subs[path]) {
-      this.signal(`PROMISE_CANCEL@${path}`);
-      this.subs[path].unsubscribe();
+  private cancelPrev(path, actionName) {
+    const prev = this.subs[path];
+    if (prev) {
+      this.signal(this.actName(`${actionName}@${path}`));
+      prev.stop();
     }
   }
 
@@ -223,10 +211,16 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
 
   next(next, action?: Action) {
     this.actions$.next(action);
-    action = this.stringToAction(action);
+    action = stringToAction(action);
     next = this.middleware(this.value, next, action, this.opts);
     this.runDebuggers(this.value, next, action, this.opts);
-    super.next(next);
+    this._state.next(next);
+  }
+
+  /// HELPERS
+
+  get value() {
+    return this._state.value;
   }
 
   private runDebuggers(state, next, action, opts) {
@@ -234,19 +228,7 @@ export class StatefulObject<T> extends BehaviorSubject<any> {
     if (this.logger) this.logger(state, next, action, opts);
   }
 
-  private stringToAction(action) {
-    return action instanceof Action ? action : new Action(action);
-  }
-
-  /// UTILS ///
-
   private actName(val) {
     return `[${this.opts.name}] ${val}`;
-  }
-
-  private isAsync(data) {
-    if (data instanceof Observable) return 'Observable';
-    if (data instanceof Promise) return 'Promise';
-    return false;
   }
 }
